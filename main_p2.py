@@ -1,6 +1,22 @@
 import requests
 from bs4 import BeautifulSoup
 
+def count_element_in_list(list, element):
+    items_count = []
+    for i_elem, item in enumerate(list, 0):
+        if item == element:
+            items_count.append(item)
+    return items_count
+
+def count_directories_parents(path):
+    try:
+        path_split = path.split("../")
+        value_parents = count_element_in_list(path_split, "")
+        count = len(value_parents)
+    except:
+        count = 0
+    return count
+
 def convert_array_to_string(tableau, separator):
     newLine = ''
     for i, elem in enumerate(tableau, 0):
@@ -42,21 +58,47 @@ def get_all_books_categories_urls(url):
                     for a_content in a_contents:
                         link_title = a_content.text.strip()  # delete all ending spaces
                         link = a_content["href"]
+                        #print("link = " + str(link))
+                        value = count_directories_parents(link)
 
-                        relative_infos = link.split("/")[0]
-                        if ".." in relative_infos:
-                            url_split = url.split("/")
+                        #print("url = " + str(url))
+                        url_split = url.split("/")
+                        #print("url_split = " + str(url_split))
+                        for i in range(0, value + 1):
+                            del url_split[len(url_split) - 1]
 
-                            # delete last item for each '.'
-                            for i in relative_infos:
-                                del url_split[len(url_split)-1]
-
-                            cleaned_path = convert_array_to_string(url_split, '/') + link.replace("..", "")
-                            titles_links.append([link_title, cleaned_path])
+                        cleaned_path = convert_array_to_string(url_split, '/') + link.replace("..", "")
+                        #print("cleaned_path = " + str(cleaned_path))
+                        titles_links.append([link_title, cleaned_path])
     return titles_links
 
 def get_all_books_items_urls(url):
-    print("get books")
+    response = requests.get(url)
+    if response.ok:
+        print("get_all_books_items_urls")
+        soup = BeautifulSoup(response.text, "html.parser")
+        sec = soup.find("section")
+
+        # get link in current pages
+        ols = sec.findAll("ol")
+        print("ols = " + str(ols))
+
+
+        print("--------------------------------")
+
+        # check if exist others page
+
+
+        # a_contents = soup.findAll("a")
+        # for a_content in a_contents:
+        #     print("a_content = " + str(a_content))
+
+# test = "../../../changing-the-game-play-by-play-2_317/index.html"
+# value = count_directories_parents(test)
+# print("value = " + str(value))
+
+# for i in range(0,1):
+#     print("i = " + str(i))
 
 url_main = 'http://books.toscrape.com/catalogue/category/books_1/index.html'
 # Get urls categories from main page
@@ -65,8 +107,11 @@ titles_urls = get_all_books_categories_urls(url_main)
 for title_url in titles_urls:
     title = title_url[0]
     url = title_url[1]
+    #print("url = " + str(url))
 
     if title == "Romance":
+        print("test")
+        print("url = " + str(url))
         get_all_books_items_urls(url)
 
 
