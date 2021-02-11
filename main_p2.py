@@ -1,5 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+import os
+
+import csv
 
 # BASIC OPERATIONS
 def count_element_in_list(list, element):
@@ -38,6 +41,36 @@ def convert_array_to_string(tableau, separator):
             newLine += str(separator) + str(elem)
     return newLine
 
+def addFolder(pathRootFolder, nameNewFolder):
+    tempoNewFolder = os.path.join(pathRootFolder, nameNewFolder)
+    if not os.path.exists(tempoNewFolder):
+        try:
+            os.makedirs(tempoNewFolder)
+        except:
+            print("This folder already exist")
+    return tempoNewFolder
+
+# CSV OPERATIONS
+def write_csv_file(path, list):
+    listOK = list
+    pathNewCSV = path
+
+    with open(pathNewCSV, "w", newline='', encoding='utf-8') as csvfile:
+        spamwriter = csv.writer(csvfile, delimiter='\t')
+        for line in listOK:
+            spamwriter.writerow(line)
+            # string_line = " ".join(map(str, line))
+            # csv_file.write(string_line)
+            # csv_file.write('\n')
+    return pathNewCSV
+
+    # with open(pathNewCSV, "w", newline='', encoding='utf-8') as csv_file:
+    #     for line in listOK:
+    #         string_line = " ".join(map(str, line))
+    #         csv_file.write(string_line)
+    #         csv_file.write('\n')
+    # return pathNewCSV
+
 # SCRAPPING OPERATIONS
 def get_datas_product_from_url(url, category):
     items = [None] * 10
@@ -68,8 +101,11 @@ def get_datas_product_from_url(url, category):
             if len(p) == 1:
                 paragraph_text = p.text
                 if len(paragraph_text) > len(description):
-                    description = paragraph_text
+                    description = paragraph_text.encode('iso-8859-1').decode('utf8')
+        #print(description)
         items[6] = description  # add product_description
+
+        #decode('iso-8859-1').encode('utf8')
 
         # GET OTHERS ITEMS
         tds = soup.findAll('tr')
@@ -132,26 +168,39 @@ def get_all_books_items_urls(url, list_pages):
 url_main = 'http://books.toscrape.com/catalogue/category/books_1/index.html'
 titles_urls = get_all_books_categories_urls(url_main)  # Get urls categories from main page
 
-for title_url in titles_urls:
+base_dir_script = os.getcwd()
+print('base_dir_script = ' + str(base_dir_script))
+
+header_csv = ['product_page_url', 'universal_ product_code (upc)', 'title', 'price_including_tax',
+              'price_excluding_tax', 'number_available', 'product_description', 'category',
+              'review_rating', 'image_url']
+path_csv_folder = addFolder(base_dir_script, "CSV")
+
+for i_title, title_url in enumerate(titles_urls, 0):
     title = title_url[0]
     url = title_url[1]
 
+    # GET ALL CATEGORIES EXCEPT BOOKS
     if title != 'Books':
-        if title == 'Romance':
-            books_pages = []
-            books_pages, next_page = get_all_books_items_urls(url, books_pages)
-            #print(title + '    ' + str(len(books_pages)) + '    ' + str(next_page))
+        # if title == 'Romance':
+        # GET ALL BOOKS FOR THIS CATEGORY
+        books_pages = []
+        books_pages, next_page = get_all_books_items_urls(url, books_pages)
 
-            while next_page != '':
-                books_pages, next_page = get_all_books_items_urls(next_page, books_pages)
+        while next_page != '':
+            books_pages, next_page = get_all_books_items_urls(next_page, books_pages)
+        print(title + '    ' + str(len(books_pages)) + '    ' + str(next_page))
 
-            print(title + '    ' + str(len(books_pages)) + '    ' + str(next_page))
+        # GET ALL INFORMATIONS FOR EACH BOOKS
+        all_products_for_this_category = []
+        all_products_for_this_category.append(header_csv)
+        for i_b, book_page in enumerate(books_pages, 0):
+            #if i_b < 1:
+            product_line = get_datas_product_from_url(book_page, title)
+            all_products_for_this_category.append(product_line)
 
-            for i_b, book_page in enumerate(books_pages, 0):
-                #if i_b < 1:
-                print('book_page ' + str(book_page))
-                #get_datas_product_from_url(book_page, title)
-
+        # WRITE CSV FILE FOR THIS CATEGORY
+        write_csv_file(os.path.join(path_csv_folder, str(i_title) + "_" + title + ".csv"), all_products_for_this_category)
 
 
 
