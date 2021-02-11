@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 
+# BASIC OPERATIONS
 def count_element_in_list(list, element):
     items_count = []
     for i_elem, item in enumerate(list, 0):
@@ -10,12 +11,23 @@ def count_element_in_list(list, element):
 
 def count_directories_parents(path):
     try:
-        path_split = path.split("../")
-        value_parents = count_element_in_list(path_split, "")
+        path_split = path.split('../')
+        value_parents = count_element_in_list(path_split, '')
         count = len(value_parents)
     except:
         count = 0
     return count
+
+def merge_link_to_url(url, link):
+    url_split = url.split('/')
+    value = count_directories_parents(link)
+
+    for i in range(0, value + 1):
+        del url_split[len(url_split) - 1]
+
+    path_OK = convert_array_to_string(url_split, '/') + '/' + link.replace('../', '')
+
+    return path_OK
 
 def convert_array_to_string(tableau, separator):
     newLine = ''
@@ -26,98 +38,119 @@ def convert_array_to_string(tableau, separator):
             newLine += str(separator) + str(elem)
     return newLine
 
-def get_datas_product_from_url(url):
+# SCRAPPING OPERATIONS
+def get_datas_product_from_url(url, category):
+    items = [None] * 10
+    items[0] = url  # add product_page_url
+    items[7] = category  # add category
+
     response = requests.get(url)
     if response.ok:
-        print("response = " + str(response))
-        soup = BeautifulSoup(response.text, "html.parser")
-        title = soup.find("title")
-        print("title = " + str(title.text))
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-        tds = soup.findAll("tr")
-        print(len(tds))
-        print("-----> ")
-        # [print(td) for td in tds]
+        # GET LINK IMAGE
+        product_gallery = soup.find('div', {'id': 'product_gallery'})
+        img = product_gallery.find('img')
+        path_img = img['src']
+        url_img = merge_link_to_url(url, path_img)
+        items[9] = url_img  # add product_page_url
+
+        # GET TITLE
+        title = soup.find('title').text.strip()
+        items[2] = title.split(' | ')[0]  # add title
+
+        # GET DESCRIPTION
+        product_page = soup.find('article', class_='product_page')
+        product_page_all_p = product_page.findAll('p')
+
+        description = ""
+        for p in product_page_all_p:
+            if len(p) == 1:
+                paragraph_text = p.text
+                if len(paragraph_text) > len(description):
+                    description = paragraph_text
+        items[6] = description  # add product_description
+
+        # GET OTHERS ITEMS
+        tds = soup.findAll('tr')
         for tr in tds:
-            print(str(tr.find("th").text))
-            print(str(tr.find("td").text))
-            print("----------")
-
-def merge_link_to_url(url, link):
-    url_split = url.split("/")
-    value = count_directories_parents(link)
-
-    for i in range(0, value + 1):
-        del url_split[len(url_split) - 1]
-
-    path_OK = convert_array_to_string(url_split, '/') + "/" + link.replace("../", "")
-
-    return path_OK
+            element = tr.find('th').text.lower()
+            value = tr.find('td').text.replace('Â', '')
+            if 'upc' in element:
+                items[1] = value  # add product_code
+            elif 'incl' in element:
+                items[3] = value  # add price_including_tax
+            elif 'excl' in element:
+                items[4] = value  # add price_excluding_tax
+            elif 'availability' in element:
+                items[5] = value.split('(')[1].replace(' available)', '')  # add number_available
+            elif 'reviews' in element:
+                items[8] = value  # add review_rating
+    return items
 
 def get_all_books_categories_urls(url):
     response = requests.get(url)
     titles_and_links = []
     if response.ok:
-        soup = BeautifulSoup(response.text, "html.parser")
-        uls = soup.findAll("ul")
+        soup = BeautifulSoup(response.text, 'html.parser')
+        uls = soup.findAll('ul')
         for ul in uls:
-            books_state = ul.find("strong")
+            books_state = ul.find('strong')
 
             if books_state != None:
-                if books_state.text == "Books":
-                    a_contents = ul.findAll("a")
+                if books_state.text == 'Books':
+                    a_contents = ul.findAll('a')
                     for a_content in a_contents:
                         link_title = a_content.text.strip()  # delete all ending spaces
-                        link = a_content["href"]
+                        link = a_content['href']
                         new_url = merge_link_to_url(url, link)
                         titles_and_links.append([link_title, new_url])
     return titles_and_links
 
 def get_all_books_items_urls(url, list_pages):
-    next_link = ""
+    next_link = ''
     response = requests.get(url)
     if response.ok:
-        #print("get_all_books_items_urls")
-        soup = BeautifulSoup(response.text, "html.parser")
-        sec = soup.find("section")
+        soup = BeautifulSoup(response.text, 'html.parser')
+        sec = soup.find('section')
+        a_contents = sec.findAll('a')
 
-        a_contents = sec.findAll("a")
         for a_content in a_contents:
             link_title = a_content.text.strip()  # delete all ending spaces
-            link = a_content["href"]
-            if link_title != "":
+            link = a_content['href']
+            if link_title != '':
                 new_url = merge_link_to_url(url, link)
-                #print(link_title + "    " + str(new_url))
-                list_pages.append(new_url)
-                if link_title == "next":
+                #print("link_title = " + str(link_title))
+                if link_title == 'next':
                     next_link = new_url
-                    #print("next = " + str(new_url))
+                    #print('next = ' + str(new_url))
+                elif link_title != 'previous':
+                    list_pages.append(new_url)
     return list_pages, next_link
-# test = "../../../changing-the-game-play-by-play-2_317/index.html"
-# value = count_directories_parents(test)
-# print("value = " + str(value))
 
-# for i in range(0,1):
-#     print("i = " + str(i))
-
+# MAIN SCRIPT
 url_main = 'http://books.toscrape.com/catalogue/category/books_1/index.html'
-# Get urls categories from main page
-titles_urls = get_all_books_categories_urls(url_main)
+titles_urls = get_all_books_categories_urls(url_main)  # Get urls categories from main page
 
 for title_url in titles_urls:
     title = title_url[0]
     url = title_url[1]
 
-    if title != "Books":
-        #if title == "Romance":
-        books_pages = []
-        books_pages, next_page = get_all_books_items_urls(url, books_pages)
-        #print(title + "    " + str(len(books_pages)) + "    " + str(next_page))
+    if title != 'Books':
+        if title == 'Romance':
+            books_pages = []
+            books_pages, next_page = get_all_books_items_urls(url, books_pages)
+            #print(title + '    ' + str(len(books_pages)) + '    ' + str(next_page))
 
-        while next_page != "":
-            books_pages, next_page = get_all_books_items_urls(next_page, books_pages)
+            while next_page != '':
+                books_pages, next_page = get_all_books_items_urls(next_page, books_pages)
 
-        print(title + "    " + str(len(books_pages)) + "    " + str(next_page))
+            print(title + '    ' + str(len(books_pages)) + '    ' + str(next_page))
+
+            for i_b, book_page in enumerate(books_pages, 0):
+                #if i_b < 1:
+                print('book_page ' + str(book_page))
+                #get_datas_product_from_url(book_page, title)
 
 
 
