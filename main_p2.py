@@ -216,6 +216,6 @@ for i_title, title_url in enumerate(titles_urls, 0):
         csv_path = write_csv_file(os.path.join(path_csv_folder, str(i_title) + '_' + title + '.csv'), all_products_for_this_category)
         print(csv_path)
 
-
+print("---> Operation is completed")
 
 
