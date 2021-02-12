@@ -1,4 +1,4 @@
-# OC_P2
+# SK_P2
 
 #### Vérifier la version de Python installée sur la machine (la gestion des environnements virtuelles est disponible depuis la version 3.3)
 `python --version`  
