@@ -3,8 +3,6 @@ from bs4 import BeautifulSoup
 import os
 import os.path
 import csv
-# from pathlib import Path
-from PIL import Image
 
 # BASIC OPERATIONS
 def count_element_in_list(list, element):
@@ -61,17 +59,7 @@ def write_csv_file(path, list):
         spamwriter = csv.writer(csvfile, delimiter='\t')
         for line in listOK:
             spamwriter.writerow(line)
-            # string_line = ' '.join(map(str, line))
-            # csv_file.write(string_line)
-            # csv_file.write('\n')
     return pathNewCSV
-
-    # with open(pathNewCSV, 'w', newline='', encoding='utf-8') as csv_file:
-    #     for line in listOK:
-    #         string_line = ' '.join(map(str, line))
-    #         csv_file.write(string_line)
-    #         csv_file.write('\n')
-    # return pathNewCSV
 
 # SCRAPPING OPERATIONS
 def get_datas_product_from_url(url, category):
@@ -104,10 +92,8 @@ def get_datas_product_from_url(url, category):
                 paragraph_text = p.text
                 if len(paragraph_text) > len(description):
                     description = paragraph_text.encode('iso-8859-1').decode('utf8')
-        #print(description)
-        items[6] = description  # add product_description
 
-        #decode('iso-8859-1').encode('utf8')
+        items[6] = description  # add product_description
 
         # GET OTHERS ITEMS
         tds = soup.findAll('tr')
@@ -134,7 +120,6 @@ def get_all_books_categories_urls(url):
         uls = soup.findAll('ul')
         for ul in uls:
             books_state = ul.find('strong')
-
             if books_state != None:
                 if books_state.text == 'Books':
                     a_contents = ul.findAll('a')
@@ -167,12 +152,6 @@ def get_all_books_items_urls(url, list_pages):
     return list_pages, next_link
 
 def download_file(url, local_path):
-    print('url = ' + str(url))
-    print('local_path = ' + str(local_path))
-
-
-    # #resume_header = ({'Range': f'bytes=0-2000000'})
-    # #r = requests.get(url, stream=True, headers=resume_header)
     r = requests.get(url)
     if r.ok:
         with open(local_path, "wb") as f:
@@ -180,54 +159,22 @@ def download_file(url, local_path):
                 f.write(chunk)
             f.close()
 
-        # with open(local_path, "rb") as f:
-        #     for chunk in r.iter_content(32 * 1024):
-        #         f.write(chunk)
-        #     f.close()
-
-    #     total_length = r.headers.get('content-length')
-    #     print("total_length = " + str(total_length))
-    #
-    #     with open(local_path, "wb") as f:
-    #         for chunk in r.iter_content(32 * 1024):
-    #             f.write(chunk)
-    #         f.close()
-    #
-    # if os.path.isfile(local_path):
-    #     print("ok")
-
-                # image = Image.open(local_path)
-                # image.show()
-                # test = local_path.replace("jpg", "test.png")
-                # im1 = image.save(test)
-
-    # r = requests.get(url, params=params)
-    # if r.ok:
-    #     with open(os_path, 'wb') as f:
-    #         f.write(r.content)
-
-        # open(os_path, 'wb').write(r.content)
-        # # print(r.headers.get('content-type'))
-        # # print(int(r.headers.get('content-length', 0)))
-
-
-# MAIN SCRIPT
+# INIT VARIABLES
 url_main = 'http://books.toscrape.com/catalogue/category/books_1/index.html'
-titles_urls = get_all_books_categories_urls(url_main)  # Get urls categories from main page
 
 base_dir_script = os.getcwd()
-print('base_dir_script = ' + str(base_dir_script))
-
 
 header_csv = ['product_page_url', 'universal_ product_code (upc)', 'title', 'price_including_tax',
               'price_excluding_tax', 'number_available', 'product_description', 'category',
               'review_rating', 'image_url']
 
 parent_directory = os.path.abspath(os.path.join(base_dir_script, '..'))
+
+# CREATE 'DATAS' FOLDER
 path_csv_folder = addFolder(parent_directory, 'DATAS')
 
-# url = 'http://books.toscrape.com/media/cache/fe/a9/fea9278c15f5ad41f5d478196cf4132d.jpg'
-
+# MAIN SCRIPT
+titles_urls = get_all_books_categories_urls(url_main)  # Get urls categories from main page
 
 for i_title, title_url in enumerate(titles_urls, 0):
     title = title_url[0]
@@ -253,25 +200,21 @@ for i_title, title_url in enumerate(titles_urls, 0):
             #if i_b < 1:
             product_line = get_datas_product_from_url(book_page, title)
             all_products_for_this_category.append(product_line)
-            #print('product_line = ' + str(product_line))
+
             # DOWNLOAD IMAGE
             image_path = product_line[len(product_line)-1]
-            #print('image_path = ' + str(image_path))
 
             book_upc = product_line[1]
             #print('book_name = ' + str(book_name))
 
             if image_path != None:
                 file_name, file_extension = os.path.splitext(image_path)
-                print("file_extension = " + str(file_extension))
                 image_local = os.path.join(path_category_folder, str(i_b) + '_' + title + '_' + book_upc + file_extension)
                 download_file(image_path, image_local)
 
         # WRITE CSV FILE FOR THIS CATEGORY
-        write_csv_file(os.path.join(path_csv_folder, str(i_title) + '_' + title + '.csv'), all_products_for_this_category)
-
-
-
+        csv_path = write_csv_file(os.path.join(path_csv_folder, str(i_title) + '_' + title + '.csv'), all_products_for_this_category)
+        print(csv_path)
 
 
 
