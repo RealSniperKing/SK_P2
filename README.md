@@ -17,6 +17,11 @@
 
 #### Mettre à jour pip et installer des paquets nécessaires au bon fonctionnement du script (requirements.txt)
 `python -m pip install --upgrade pip`  
+`pip install -r requirements.txt`
+
+ou
+
+`python -m pip install --upgrade pip`  
 `pip install requests==2.25.1`  
 `pip install beautifulsoup4==4.9.3`
 
