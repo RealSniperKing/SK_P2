@@ -16,10 +16,10 @@ def main():
                   'price_excluding_tax', 'number_available', 'product_description', 'category',
                   'review_rating', 'image_url']
 
-    parent_directory = os.path.abspath(os.path.join(base_dir_script, '..'))
+    #parent_directory = os.path.abspath(os.path.join(base_dir_script, '..'))
 
     # CREATE 'DATAS' FOLDER
-    path_csv_folder = add_folder(parent_directory, 'DATAS')
+    path_csv_folder = add_folder(base_dir_script, 'DATAS')
 
     # MAIN SCRIPT
     scrap_url_main = Scrapping(url_main)
